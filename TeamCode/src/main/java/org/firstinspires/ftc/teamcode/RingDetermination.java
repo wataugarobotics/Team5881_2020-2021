@@ -38,15 +38,16 @@ import org.openftc.easyopencv.OpenCvPipeline;
 
 /*
  * This sample demonstrates a basic (but battle-tested and essentially
- * 100% accurate) method of detecting the skystone when lined up with
+ * 100% accurate) method of detecting the Ring when lined up with
  * the sample regions over the first 3 stones.
  */
 @TeleOp
-public class SkystoneDeterminationExample extends LinearOpMode
+public class RingDetermination extends LinearOpMode
 {
     OpenCvInternalCamera phoneCam;
-    SkystoneDeterminationPipeline pipeline;
-
+    RingDeterminationPipeline pipeline;
+    static final Scalar BLUE = new Scalar(0, 0, 255);
+    static final Scalar GREEN = new Scalar(0, 255, 0);
     @Override
     public void runOpMode()
     {
@@ -59,7 +60,7 @@ public class SkystoneDeterminationExample extends LinearOpMode
 
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         phoneCam = OpenCvCameraFactory.getInstance().createInternalCamera(OpenCvInternalCamera.CameraDirection.BACK, cameraMonitorViewId);
-        pipeline = new SkystoneDeterminationPipeline();
+        pipeline = new RingDeterminationPipeline();
         phoneCam.setPipeline(pipeline);
 
         // We set the viewport policy to optimized view so the preview doesn't appear 90 deg
@@ -88,16 +89,17 @@ public class SkystoneDeterminationExample extends LinearOpMode
         }
     }
 
-    public static class SkystoneDeterminationPipeline extends OpenCvPipeline
+    public static class RingDeterminationPipeline extends OpenCvPipeline
     {
         /*
-         * An enum to define the skystone position
+         * An enum to define the Ring position
          */
-        public enum SkystonePosition
+        public enum RingPosition
         {
             LEFT,
             CENTER,
-            RIGHT
+            RIGHT,
+            NONE
         }
 
         /*
@@ -109,11 +111,11 @@ public class SkystoneDeterminationExample extends LinearOpMode
         /*
          * The core values which define the location and size of the sample regions
          */
-        static final Point REGION1_TOPLEFT_ANCHOR_POINT = new Point(109,98);
-        static final Point REGION2_TOPLEFT_ANCHOR_POINT = new Point(181,98);
-        static final Point REGION3_TOPLEFT_ANCHOR_POINT = new Point(253,98);
-        static final int REGION_WIDTH = 20;
-        static final int REGION_HEIGHT = 20;
+        static final Point REGION1_TOPLEFT_ANCHOR_POINT = new Point(100,125);
+        static final Point REGION2_TOPLEFT_ANCHOR_POINT = new Point(172,125);
+        static final Point REGION3_TOPLEFT_ANCHOR_POINT = new Point(244,125);
+        static final int REGION_WIDTH = 40;
+        static final int REGION_HEIGHT = 60;
 
         /*
          * Points which actually define the sample region rectangles, derived from above values
@@ -160,7 +162,7 @@ public class SkystoneDeterminationExample extends LinearOpMode
         int avg1, avg2, avg3;
 
         // Volatile since accessed by OpMode thread w/o synchronization
-        private volatile SkystonePosition position = SkystonePosition.LEFT;
+        private volatile RingPosition position = RingPosition.LEFT;
 
         /*
          * This function takes the RGB frame, converts to YCrCb,
@@ -216,17 +218,17 @@ public class SkystoneDeterminationExample extends LinearOpMode
              *
              * After we've converted to YCrCb, we extract just the 2nd channel, the
              * Cb channel. We do this because stones are bright yellow and contrast
-             * STRONGLY on the Cb channel against everything else, including SkyStones
-             * (because SkyStones have a black label).
+             * STRONGLY on the Cb channel against everything else, including Rings
+             * (because Rings have a black label).
              *
              * We then take the average pixel value of 3 different regions on that Cb
              * channel, one positioned over each stone. The brightest of the 3 regions
-             * is where we assume the SkyStone to be, since the normal stones show up
+             * is where we assume the Ring to be, since the normal stones show up
              * extremely darkly.
              *
              * We also draw rectangles on the screen showing where the sample regions
              * are, as well as drawing a solid rectangle over top the sample region
-             * we believe is on top of the SkyStone.
+             * we believe is on top of the Ring.
              *
              * In order for this whole process to work correctly, each sample region
              * should be positioned in the center of each of the first 3 stones, and
@@ -287,6 +289,8 @@ public class SkystoneDeterminationExample extends LinearOpMode
             /*
              * Find the max of the 3 averages
              */
+
+            //TODO: CHECK IF IS ORANGE BEFORE ALL OF BELOW
             int maxOneTwo = Math.max(avg1, avg2);
             int max = Math.max(maxOneTwo, avg3);
 
@@ -296,7 +300,7 @@ public class SkystoneDeterminationExample extends LinearOpMode
              */
             if(max == avg1) // Was it from region 1?
             {
-                position = SkystonePosition.LEFT; // Record our analysis
+                position = RingPosition.LEFT; // Record our analysis
 
                 /*
                  * Draw a solid rectangle on top of the chosen region.
@@ -311,7 +315,7 @@ public class SkystoneDeterminationExample extends LinearOpMode
             }
             else if(max == avg2) // Was it from region 2?
             {
-                position = SkystonePosition.CENTER; // Record our analysis
+                position = RingPosition.CENTER; // Record our analysis
 
                 /*
                  * Draw a solid rectangle on top of the chosen region.
@@ -326,7 +330,7 @@ public class SkystoneDeterminationExample extends LinearOpMode
             }
             else if(max == avg3) // Was it from region 3?
             {
-                position = SkystonePosition.RIGHT; // Record our analysis
+                position = RingPosition.RIGHT; // Record our analysis
 
                 /*
                  * Draw a solid rectangle on top of the chosen region.
@@ -351,7 +355,7 @@ public class SkystoneDeterminationExample extends LinearOpMode
         /*
          * Call this from the OpMode thread to obtain the latest analysis
          */
-        public SkystonePosition getAnalysis()
+        public RingPosition getAnalysis()
         {
             return position;
         }
